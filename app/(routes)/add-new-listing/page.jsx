@@ -3,7 +3,9 @@ import GoogleAddressSearch from '@/app/_components/GoogleAddressSearch';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase/client';
 import { useUser } from '@clerk/nextjs';
+import { Loader } from 'lucide-react';
 import React, { useState } from 'react'
+import { toast } from 'sonner';
 
 
 
@@ -12,14 +14,14 @@ const AddNewListing = () => {
   const [coordinates, setCoordinates] = useState();
 
   const {user}=useUser();
-
+const [loader, setLoader] = useState(false);
   const nextHandler=async()=>{
-    console.log(selectedAddress, coordinates);
+    setLoader(true);
     
     const { data, error } = await supabase
     .from('bzameen_database')
     .insert([
-      {address: selectedAddress, 
+      {address: selectedAddress.label, 
         coordinates: coordinates, 
         createdBy:user?.primaryEmailAddress.emailAddress
       },
@@ -27,10 +29,14 @@ const AddNewListing = () => {
     .select();
     
     if(data){
+      setLoader(false);
       console.log("New data Added,", data);
+      toast('New Data Added for listing');
     }
     if(error){
+      setLoader(false);
       console.log("Error");
+      toast('Server Side Error');
     }
 
   }
@@ -45,9 +51,11 @@ const AddNewListing = () => {
             setCoordinates={(value)=>setCoordinates(value)}
             />
             <Button
-            disabled={!selectedAddress || !coordinates}
+            disabled={!selectedAddress || !coordinates ||loader}
             onClick={nextHandler}
-            >Next</Button>
+            >
+            {loader?<Loader className='animate-spin'/>:'Next'}
+            </Button>
         </div>
     </div>
     </div>

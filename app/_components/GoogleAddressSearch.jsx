@@ -12,7 +12,7 @@ function GoogleAddressSearch({selectedAddress, setCoordinates}) {
     <GooglePlacesAutocomplete  
     apiKey={process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY}
     selectProps={{
-      placeholder:'Enter Property Address',
+      placeholder:'Search Property Address',
       isClearable:true,
       className:'w-full',
       onChange:(place)=>{

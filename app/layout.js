@@ -3,6 +3,7 @@ import "./globals.css";
 import Provider from "./Provider";
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,6 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
+    <TooltipProvider>
     <html lang="en">
       <body className={inter.className}>
       <Provider>
@@ -22,6 +24,7 @@ export default function RootLayout({ children }) {
       </Provider>
       </body>
     </html>
+    </TooltipProvider>
     </ClerkProvider>
   );
 }

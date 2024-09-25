@@ -8,10 +8,11 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import React from 'react'
 
+
 const Header = () => {
     const path=usePathname();
     const {user, isSignedIn} = useUser();
-  console.log(path);
+    console.log(path);
     useEffect(()=>{
        
     },[])  

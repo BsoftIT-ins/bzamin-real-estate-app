@@ -15,14 +15,20 @@ import { supabase } from "@/utils/supabase/client";
 import { useUser } from "@clerk/nextjs";
 import { Formik } from "formik";
 import { usePathname } from "next/navigation";
-import { useRouter } from "next/router";
-import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import FileUpload from "../_components/fileUpload";
+import { Loader } from "lucide-react";
+
 
 const EditListing = ({ params }) => {
-  const pathname = usePathname();
+  
   const { user } = useUser();
   const router = useRouter();
+  const [listing, setListing]=useState({})
+  const [images, setImages]=useState([]);
+  const [loading, setLoading]=useState(false);
 
   useEffect(() => {
     user && verifyUserRecord();
@@ -35,12 +41,20 @@ const EditListing = ({ params }) => {
       .eq('createdBy', user?.primaryEmailAddress.emailAddress)
       .eq('id', params.id);
 
+      if(data)
+      {
+        setListing(data[0]);
+        console.log(listing);
+      }
+      
+
     if (data?.length <= 0) {
       router.replace('/');
     }
   };
 
   const onSubmitHandler = async (formValue) => {
+    setLoading(true);
     const { data, error } = await supabase
       .from('bzameen_database')
       .update(formValue)
@@ -50,6 +64,39 @@ const EditListing = ({ params }) => {
     if (data) {
       console.log(data);
       toast('Update listing and published');
+    }
+    for(const image of images)
+    {
+      const file=image;
+      const fileName=Date.now().toString();
+      const fileExt=fileName.split('.').pop();
+      const {data, error} = await supabase.storage
+      .from('listingImages')
+      .upload(`${fileName}`, file,{
+        contentType:`image/${fileExt}`,
+        upsert:false
+      });
+      if(error)
+      {
+        setLoading(false);
+        toast("Error while uploading images");
+      }
+      else{
+        
+        const imageUrl=process.env.NEXT_PUBLIC_IMAGE_URL+fileName;
+        
+        const {data, error} = await supabase
+        .from('listingImages')
+        .insert([
+          {url:imageUrl, listing_Id:params?.id}
+        ])
+        .select();
+        if(error)
+        {
+          setLoading(false);
+        }
+      }
+      setLoading(false);
     }
   };
 
@@ -61,7 +108,13 @@ const EditListing = ({ params }) => {
       </h2>
 
       <Formik
-      initialValues={{ type: "", propertyType: "" }}
+      initialValues={{ 
+        type: "", 
+        propertyType:"",
+        profileImage:user?.imageUrl,
+        fullName:user?.fullName
+
+      }}
         onSubmit={(values) => {
           console.log(values);
           onSubmitHandler(values);
@@ -75,8 +128,8 @@ const EditListing = ({ params }) => {
                   <h2 className="text-lg text-slate-500">
                     Do you want to Sell or Rent{" "}
                   </h2>
-                  <RadioGroup
-                  onValueChange={(values) => console.log = values}
+                  <RadioGroup defaultValue={listing?.type}
+                  onValueChange={(v) => values.type=v}
                     >
                     <div className="font-bold text-lg flex items-center space-x-2">
                       <RadioGroupItem value="Sell" id="Sell" />
@@ -95,11 +148,13 @@ const EditListing = ({ params }) => {
                 <div className="flex flex-col gap-2">
                   <h2 className="text-lg text-slate-500">Property Type</h2>
                   <Select
-                  onValueChange={(e) => console.log = e}
+                  onValueChange={(e) => values.propertyType = e}
                                   
-                  name="propertyType">
+                  name="propertyType"
+                  defaultValue={listing?.propertyType}
+                  >
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Property Type" />
+                      <SelectValue placeholder={listing?.propertyType?listing?.propertyType:"Select Property Type"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Single Family House">
@@ -114,39 +169,40 @@ const EditListing = ({ params }) => {
               <div className="my-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Bedroom</h2>
-                  <Input type="number" placeholder="Ex.2" name="bedroom" onchange={handleChange}/>
+                  <Input type="number" placeholder="Ex.2"
+                  defaultValue={listing?.bedroom} name="bedroom" onChange={handleChange}/>
                 </div>
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Bathroom</h2>
-                  <Input type="number" placeholder="Ex.2" name="bathroom" onchange={handleChange} />
+                  <Input type="number" placeholder="Ex.2" defaultValue={listing?.bathroom} name="bathroom" onChange={handleChange} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Built In</h2>
-                  <Input type="number" placeholder="Ex.2" name="builtIn" onchange={handleChange}/>
+                  <Input type="number" placeholder="Ex.2" defaultValue={listing?.builtIn} name="builtIn" onChange={handleChange}/>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Parking</h2>
-                  <Input type="number" placeholder="Ex.2" name="parking" onchange={handleChange} />
+                  <Input type="number" placeholder="Ex.2" defaultValue={listing?.parking} name="parking" onChange={handleChange} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Plot Size (Sq.Ft)</h2>
-                  <Input type="number" placeholder="Ex.2" name="plotSize" onchange={handleChange}/>
+                  <Input type="number" placeholder="Ex.2" defaultValue={listing?.plotSize} name="plotSize" onChange={handleChange}/>
                 </div>
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Area (Sq.Ft)</h2>
-                  <Input type="number" placeholder="Ex.2" name="area" onchange={handleChange} />
+                  <Input type="number" placeholder="Ex.2" defaultValue={listing?.area} name="area" onChange={handleChange} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">Selling Price ($)</h2>
-                  <Input type="number" placeholder="400000" name="price" onchange={handleChange}/>
+                  <Input type="number" placeholder="400000" name="price" defaultValue={listing?.price} onChange={handleChange}/>
                 </div>
                 <div className="flex flex-col gap-2">
                   <h2 className="text-grey-500">HOA (Per Month) ($)</h2>
-                  <Input type="number" placeholder="100" name="hoa" onchange={handleChange}/>
+                  <Input type="number" placeholder="100" defaultValue={listing?.hoa} name="hoa" onChange={handleChange}/>
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-1 gap-10">
@@ -154,17 +210,24 @@ const EditListing = ({ params }) => {
                   <h2 className="text-grey-500">Description</h2>
                   <Textarea
                     placeholder="Type your message here..."
-                    name="description"
+                    name="description" defaultValue={listing?.description}
                   />
                 </div>
               </div>
+              <div>
+              <h2 className="font-lg text-grey-500 my-2">Property Image</h2>
+                <FileUpload setImages={(value)=>setImages(value)}/>
+              </div>
+
               <div className="flex gap-7 justify-end mt-5">
                 <div>
                   <Button type="submit" variant="outline">
                     Save
                   </Button>
                 </div>
-                <Button type="submit">Save & Publish</Button>
+                <Button disabled={loading} type="submit">
+                {loading?<Loader className="animate-spin"/>:'Save & Publish'}
+                </Button>
               </div>
             </div>
           </form>
